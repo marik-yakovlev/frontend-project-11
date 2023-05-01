@@ -4,9 +4,6 @@ import axios from 'axios';
 import render from './view.js';
 import resources from './locales/index.js';
 
-let id = 0;
-const generateId = () => id += 1;
-
 const parserXML = (xml) => {
   const newDomParser = new DOMParser();
   const domXML = newDomParser.parseFromString(xml, 'text/xml');
@@ -15,7 +12,7 @@ const parserXML = (xml) => {
     title: domXML.querySelector('channel > title').textContent,
     description: domXML.querySelector('channel > description').textContent,
   };
-  const contents = { items: domXML.querySelectorAll('item'), id };
+  const contents = { items: domXML.querySelectorAll('item') };
   return { feed, contents };
 };
 
@@ -31,6 +28,13 @@ const elements = {
   feedback: document.querySelector('.feedback'),
   feeds: document.querySelector('.feeds'),
   posts: document.querySelector('.posts'),
+  modal: document.getElementById('modal'),
+  body: document.querySelector('body'),
+  modalTitle: document.querySelector('.modal-title'),
+  modalBody: document.querySelector('.modal-body'),
+  btnPrimary: document.querySelector('.btn-primary'),
+  btnClose: document.querySelector('.btn-close'),
+  btnSecondary: document.querySelector('.btn-secondary'),
 };
 
 const state = {
@@ -41,7 +45,6 @@ const state = {
     contents: [],
   },
 };
-
 const watchedState = render(state, elements, i18n);
 
 const app = () => {
@@ -63,7 +66,7 @@ const app = () => {
             watchedState.dataRSS.contents.push(contents);
             watchedState.urlsList.push(url);
           })
-          .catch((err) => {
+          .catch(() => {
             watchedState.error = i18n.t('errors.notValidRSS');
           });
       })
