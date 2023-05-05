@@ -4,9 +4,7 @@ import axios from 'axios';
 import render from './view.js';
 import resources from './locales/index.js';
 import parserXML from './parserXML.js';
-
 const getQueryUrl = (url) => `https://allorigins.hexlet.app/get?disableCache=true&url=${encodeURIComponent(url)}`;
-
 const i18n = i18next.createInstance();
 i18n.init({
   lng: 'ru',
@@ -16,6 +14,7 @@ i18n.init({
 const elements = {
   form: document.querySelector('.rss-form'),
   input: document.querySelector('input'),
+  containerInput: document.getElementById('submit-button'),
   feedback: document.querySelector('.feedback'),
   feeds: document.querySelector('.feeds'),
   posts: document.querySelector('.posts'),
@@ -35,8 +34,7 @@ const state = {
     contents: [],
   },
 };
-
-const watchedState = render(state, elements, i18n);
+const view = render(state, elements, i18n);
 const timer = () => {
   if (state.urlsList.length === 0) {
     return setTimeout(timer, 5000);
@@ -52,18 +50,22 @@ const timer = () => {
       contents.forEach((item) => {
         const newPost = !state.dataRSS.contents.find((item2) => item.title === item2.title);
         if (newPost) {
-          watchedState.dataRSS.contents.push(item);
+          view.dataRSS.contents.push(item);
         }
       });
     });
+    setTimeout(timer, 5000);
   });
-  return setTimeout(timer, 5000);
+  
+  return null;
 };
 timer();
 
 const app = () => {
   elements.form.addEventListener('submit', (e) => {
     e.preventDefault();
+    view.error = null;
+    elements.containerInput.setAttribute('disabled', 'true');
     const formData = new FormData(e.target);
     const enteredByUrl = formData.get('url');
     const schema = yup.string().url('notValidUrls').notOneOf(state.urlsList, 'workedRSS');
@@ -71,21 +73,23 @@ const app = () => {
       .then((url) => {
         axios(getQueryUrl(url))
           .then((response) => {
-            const collections = [];
             const { feed, contents } = parserXML(response.data.contents);
             contents.forEach((item) => {
-              collections.push(item);
+              view.dataRSS.contents.push(item);
             });
-            watchedState.dataRSS.contents = [...state.dataRSS.contents, ...collections];
-            watchedState.dataRSS.feeds.push(feed);
-            watchedState.urlsList.push(url);
+            view.dataRSS.feeds.push(feed);
+            view.urlsList.push(url);
           })
-          .catch(() => {
-            watchedState.error = i18n.t('errors.notValidRSS');
+          .catch((err) => {
+            if (err.request) {
+              view.error = i18n.t('errors.disconnect');
+            } else {
+              view.error = i18n.t('errors.notValidRSS');
+            }
           });
       })
       .catch((err) => {
-        watchedState.error = i18n.t(`errors.${err.message}`);
+        view.error = i18n.t(`errors.${err.message}`);
       });
   });
 };
